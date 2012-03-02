@@ -70,7 +70,7 @@ module Streama
     # @param [ Hash ] options The options to publish with.
     #
     def publish(options = {})
-      actor = load_actor(options[:actor])        
+      self.actor = load_actor(options[:actor])        
       # puts actor, options, "follower: #{actor.followers}"
       self.receivers = (options[:receivers] || actor.followers).map { |r| { :id => r.id, :type => r.class.to_s } }
       self.save
