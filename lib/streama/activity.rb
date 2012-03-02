@@ -52,7 +52,8 @@ module Streama
       # @return [Streama::Activity] An Activity instance with data
       def publish(verb, data)
         receivers = data.delete(:receivers)
-        new({:verb => verb}.merge(data)).publish(:receivers => receivers)
+        actor = data.delete(:actor)
+        new({:verb => verb}.merge(data)).publish(:actor => actor, :receivers => receivers)
       end
       
       def stream_for(actor, options={})
@@ -60,7 +61,7 @@ module Streama
         query.merge!({:verb => options[:type]}) if options[:type]
         self.where(query).without(:receivers).desc(:created_at)
       end
-      
+
     end
 
     
@@ -69,7 +70,8 @@ module Streama
     # @param [ Hash ] options The options to publish with.
     #
     def publish(options = {})
-      actor = load_instance(:actor)        
+      actor = load_actor(options[:actor])        
+      # puts actor, options, "follower: #{actor.followers}"
       self.receivers = (options[:receivers] || actor.followers).map { |r| { :id => r.id, :type => r.class.to_s } }
       self.save
       self
@@ -82,6 +84,10 @@ module Streama
     # @return [Mongoid::Document] document A mongoid document instance
     def load_instance(type)
       (data = self.send(type)).is_a?(Hash) ? data['type'].to_s.camelcase.constantize.find(data['id']) : data
+    end
+
+    def load_actor(type)
+      type
     end
   
     def refresh_data
