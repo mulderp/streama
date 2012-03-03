@@ -12,6 +12,10 @@ module Streama
       @target_object = definition[:target_object] || {}
     end
     
+    def fields_array(type, class_sym)
+      self.send(type)[class_sym].try(:[],:cache)
+    end
+    
     #
     # Registers a new definition
     #

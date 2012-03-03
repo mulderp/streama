@@ -129,6 +129,7 @@ describe "Activity" do
 
   describe "assign_data" do
     it "gives class" do
+
     end
 
 

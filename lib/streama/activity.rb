@@ -110,13 +110,16 @@ module Streama
       [:actor, :object, :target_object].each do |type|
         next unless object = load_instance(type)
 
-        class_sym = object.class.name.underscore.to_sym
+        class_sym = Activity.to_class_name(object)
+          # object.class.name.underscore.to_sym
 
-        raise Streama::InvalidData.new(class_sym) unless definition.send(type).has_key?(class_sym)
-    
+        act_definition = definition.send(type)
+
+        raise Streama::InvalidData.new(class_sym) unless act_definition.has_key?(class_sym)
+        
         hash = {'id' => object.id, 'type' => object.class.name}
               
-        if fields = definition.send(type)[class_sym].try(:[],:cache)
+        if (fields = definition.fields_array(type, class_sym))
           fields.each do |field|
             raise Streama::InvalidField.new(field) unless object.respond_to?(field)
             hash[field.to_s] = object.send(field)

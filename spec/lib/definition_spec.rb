@@ -19,12 +19,17 @@ describe "Definition" do
     it "assigns @actor" do
       @definition.actor.has_key?(:user).should be true
     end
+
     it "assigns @object" do
       @definition.object.has_key?(:photo).should be true
     end
     
     it "assigns @target" do
       @definition.target_object.has_key?(:album).should be true
+    end
+    
+    it "gives fields" do
+      @definition.fields_array(:actor, :user).should == [:id, :full_name]
     end
     
   end
@@ -61,5 +66,5 @@ describe "Definition" do
     end
     
   end
-  
+ 
 end
