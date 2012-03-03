@@ -1,29 +1,29 @@
 module Streama
   module Activity
     extend ActiveSupport::Concern
-    
+
     included do
-      
+
       include Mongoid::Document
       include Mongoid::Timestamps
-    
+
       field :verb,          :type => Symbol
       field :actor,         :type => Hash
       field :object,        :type => Hash
       field :target_object, :type => Hash
       field :receivers,     :type => Array
-          
+
       index :name
       index [['actor._id', Mongo::ASCENDING], ['actor._type', Mongo::ASCENDING]]
       index [['object._id', Mongo::ASCENDING], ['object._type', Mongo::ASCENDING]]
       index [['target_object._id', Mongo::ASCENDING], ['target_object._type', Mongo::ASCENDING]]
       index [['receivers.id', Mongo::ASCENDING], ['receivers.type', Mongo::ASCENDING]]
-          
+
       validates_presence_of :actor, :verb
       before_save :assign_data
-      
+
     end
-    
+
     module ClassMethods
 
       # Defines a new activity type and registers a definition
@@ -56,7 +56,7 @@ module Streama
      #   actor = data.delete(:actor)
      #   new({:verb => verb}.merge(data)).publish(:actor => actor, :receivers => receivers)
       end
-      
+
       def stream_for(actor, options={})
         query = {:receivers => {'$elemMatch' => {:id => actor.id, :type => actor.class.to_s}}}
         query.merge!({:verb => options[:type]}) if options[:type]
@@ -65,20 +65,20 @@ module Streama
 
     end
 
-    
+
     # Publishes the activity to the receivers
     #
     # @param [ Hash ] options The options to publish with.
     #
     def publish(options = {})
-      actor = load_instance(:actor) 
-#      self.actor = load_actor(options[:actor])        
+      self.actor = load_instance(:actor)
+#      self.actor = load_actor(options[:actor])
       # puts actor, options, "follower: #{actor.followers}"
       self.receivers = (options[:receivers] || actor.followers).map { |r| { :id => r.id, :type => r.class.to_s } }
       self.save
       self
     end
-    
+
     # Returns an instance of an actor, object or target
     #
     # @param [ Symbol ] type The data type (actor, object, target) to return an instance for.
@@ -89,9 +89,14 @@ module Streama
     end
 
     def load_actor
-      actor["type"].to_s.camelcase.constantize.find(actor['id'])
+      if self.actor.is_a?(Hash)
+        actor_hash = self.actor
+        actor_hash["type"].to_s.camelcase.constantize.find(actor_hash['id'])
+      else
+        self.actor
+      end
     end
-  
+
     def refresh_data
       assign_data
       save(:validate => false)
@@ -102,12 +107,30 @@ module Streama
       object.class.name.underscore.to_sym
     end
 
-  
+    def assign_actor
+      return unless actor = load_actor
+
+      class_sym = Activity.to_class_name(actor)
+
+      raise Streama::InvalidData.new(class_sym) unless definition.actor.has_key?(class_sym)
+
+      hash = {'id' => actor.id, 'type' => actor.class.name}
+
+      if (fields = definition.actor_fields(class_sym))
+        fields.each do |field|
+          raise Streama::InvalidField.new(field) unless actor.respond_to?(field)
+          hash[field.to_s] = actor.send(field)
+        end
+      end
+      write_attribute(:actor, hash)
+    end
+
     protected
-      
+
     def assign_data
-    
-      [:actor, :object, :target_object].each do |type|
+
+      assign_actor
+      [:object, :target_object].each do |type|
         next unless object = load_instance(type)
 
         class_sym = Activity.to_class_name(object)
@@ -116,22 +139,22 @@ module Streama
         act_definition = definition.send(type)
 
         raise Streama::InvalidData.new(class_sym) unless act_definition.has_key?(class_sym)
-        
+
         hash = {'id' => object.id, 'type' => object.class.name}
-              
+
         if (fields = definition.fields_array(type, class_sym))
           fields.each do |field|
             raise Streama::InvalidField.new(field) unless object.respond_to?(field)
             hash[field.to_s] = object.send(field)
           end
         end
-        write_attribute(type, hash)      
+        write_attribute(type, hash)
       end
     end
-  
+
     def definition
       @definition ||= Streama::Definition.find(verb)
     end
-    
+
   end
 end

@@ -31,6 +31,10 @@ describe "Definition" do
     it "gives fields" do
       @definition.fields_array(:actor, :user).should == [:id, :full_name]
     end
+
+    it "gives fields" do
+      @definition.actor_fields(:user).should == [:id, :full_name]
+    end
     
   end
   

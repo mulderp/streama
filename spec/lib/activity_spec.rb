@@ -122,14 +122,19 @@ describe "Activity" do
   describe "to_class_name" do
     it "gives class name" do
       @activity = Activity.publish(:new_photo, {:actor => user, :object => photo, :target_object => album})
-      instance = @activity.load_actor
-      Streama::Activity.to_class_name(instance).should == :user
+      actor = @activity.load_actor
+      Streama::Activity.to_class_name(actor).should == :user
     end
   end
 
-  describe "assign_data" do
-    it "gives class" do
+  describe "assign_actor" do
+    it "gives instance" do
+      @activity = Activity.publish(:new_photo, {:actor => user, :object => photo, :target_object => album})
+      @activity.assign_actor
 
+      @activity.actor["type"].should == "User"
+      @activity.actor["id"].should == user.id
+      @activity.actor["full_name"].should == "Christos"
     end
 
 
