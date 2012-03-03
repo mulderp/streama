@@ -52,8 +52,9 @@ module Streama
       # @return [Streama::Activity] An Activity instance with data
       def publish(verb, data)
         receivers = data.delete(:receivers)
-        actor = data.delete(:actor)
-        new({:verb => verb}.merge(data)).publish(:actor => actor, :receivers => receivers)
+        new({:verb => verb}.merge(data)).publish(:receivers => receivers)
+     #   actor = data.delete(:actor)
+     #   new({:verb => verb}.merge(data)).publish(:actor => actor, :receivers => receivers)
       end
       
       def stream_for(actor, options={})
@@ -70,7 +71,8 @@ module Streama
     # @param [ Hash ] options The options to publish with.
     #
     def publish(options = {})
-      self.actor = load_actor(options[:actor])        
+      actor = load_instance(:actor) 
+#      self.actor = load_actor(options[:actor])        
       # puts actor, options, "follower: #{actor.followers}"
       self.receivers = (options[:receivers] || actor.followers).map { |r| { :id => r.id, :type => r.class.to_s } }
       self.save
@@ -86,14 +88,20 @@ module Streama
       (data = self.send(type)).is_a?(Hash) ? data['type'].to_s.camelcase.constantize.find(data['id']) : data
     end
 
-    def load_actor(type)
-      type
+    def load_actor
+      actor["type"].to_s.camelcase.constantize.find(actor['id'])
     end
   
     def refresh_data
       assign_data
       save(:validate => false)
     end
+
+
+    def self.to_class_name(object)
+      object.class.name.underscore.to_sym
+    end
+
   
     protected
       

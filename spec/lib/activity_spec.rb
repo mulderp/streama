@@ -110,5 +110,28 @@ describe "Activity" do
     end
     
   end
+
+  describe "#load_actor" do
+    it "loads an actor instance" do
+      @activity = Activity.publish(:new_photo, {:actor => user, :object => photo, :target_object => album})
+      @activity = Activity.last
+      @activity.load_actor.should == user
+    end
+  end
+
+  describe "to_class_name" do
+    it "gives class name" do
+      @activity = Activity.publish(:new_photo, {:actor => user, :object => photo, :target_object => album})
+      instance = @activity.load_actor
+      Streama::Activity.to_class_name(instance).should == :user
+    end
+  end
+
+  describe "assign_data" do
+    it "gives class" do
+    end
+
+
+  end
   
 end
